@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Text Extractor from Screenshot",
+  "version": "1.0",
+  "permissions": ["tabs", "activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": ["<all_urls>"]
+}

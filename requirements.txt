@@ -1,0 +1,9 @@
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+keras-ocr==0.9.3
+tensorflow==2.10.0        # CPU build for Windows x86_64
+numpy==1.24.3
+scikit-image==0.21.0
+opencv-python-headless==4.10.*
+Pillow>=10
+imgaug==0.4.0
