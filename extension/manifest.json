@@ -1,13 +1,26 @@
 {
   "manifest_version": 3,
-  "name": "Text Extractor from Screenshot",
+  "name": "Screenshot Text Extractor",
   "version": "1.0",
-  "permissions": ["tabs", "activeTab", "scripting"],
-  "action": {
-    "default_popup": "popup.html"
-  },
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "tabs",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "http://localhost:8000/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
-  "host_permissions": ["<all_urls>"]
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"]
+    }
+  ]
 }
