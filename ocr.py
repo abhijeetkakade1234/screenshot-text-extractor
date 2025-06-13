@@ -1,19 +1,19 @@
 import os
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress TensorFlow INFO and WARNING messages
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Force TensorFlow to use CPU only
-# uvicorn ocr:app --reload
-#pip install uvicorn[standard]
-import cv2
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+import easyocr
 import numpy as np
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageOps
 import io
-import keras_ocr
 
 app = FastAPI()
 
-# Allow Chrome Extension to access this server
+# Initialize EasyOCR reader globally
+reader = easyocr.Reader(['en'])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,27 +22,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-pipeline = keras_ocr.pipeline.Pipeline()
-
-def preprocess_for_keras_ocr(img: np.ndarray) -> np.ndarray:
-    if len(img.shape) == 2 or img.shape[2] == 1:
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-    elif img.shape[2] == 4:
-        img = cv2.cvtColor(img, cv2.COLOR_BGRA2RGB)
-    else:
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    if img.shape[0] < 600:
-        scale = 600 / img.shape[0]
-        img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
-    return img
-
 @app.post("/ocr")
 async def ocr(file: UploadFile = File(...)):
-    contents = await file.read()
-    pil_img = Image.open(io.BytesIO(contents)).convert("RGB")
-    pil_img = ImageOps.exif_transpose(pil_img)
-    img = np.array(pil_img)
-    img = preprocess_for_keras_ocr(img)
-    results = pipeline.recognize([img])
-    text = " ".join([item[0] for item in results[0]])
-    return {"text": text}
+    try:
+        # Read and process the image
+        contents = await file.read()
+        pil_img = Image.open(io.BytesIO(contents)).convert("RGB")
+        pil_img = ImageOps.exif_transpose(pil_img)
+        img = np.array(pil_img)
+
+        # Perform OCR with bounding boxes
+        results = reader.readtext(img)
+        
+        # Return both text and positions
+        text_regions = [
+            {
+                "text": item[1],
+                "confidence": float(item[2]),
+                "bbox": {
+                    "x1": int(item[0][0][0]),
+                    "y1": int(item[0][0][1]),
+                    "x2": int(item[0][2][0]),
+                    "y2": int(item[0][2][1])
+                }
+            }
+            for item in results
+        ]
+        
+        print(f"Found {len(text_regions)} text regions")
+        return {"regions": text_regions}
+
+    except Exception as e:
+        print("OCR Error:", e)
+        return {"regions": [], "error": str(e)}
+

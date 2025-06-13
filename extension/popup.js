@@ -1,13 +1,16 @@
-document.getElementById("extractBtn").addEventListener("click", () => {
-    chrome.runtime.sendMessage({ action: "capture" }, (response) => {
-        console.log("Response from background:", response);
-    });
+document.getElementById("extractBtn").addEventListener("click", async () => {
+    try {
+        chrome.runtime.sendMessage({ action: "startCapture" }, (response) => {
+            console.log("Response from background:", response);
+        });
+    } catch (error) {
+        console.error("Popup error:", error);
+    }
 });
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "showText") {
-        const textarea = document.getElementById("output");
-        textarea.value = request.text;
-        navigator.clipboard.writeText(request.text);
-    }
+document.getElementById("copyBtn").addEventListener("click", () => {
+    const text = document.getElementById("output").value;
+    navigator.clipboard.writeText(text).then(() => {
+        alert("Copied to clipboard!");
+    });
 });
